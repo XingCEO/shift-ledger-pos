@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "shift-ledger-pos"
+version = "0.1.0"
+description = "A self-hosted single-register POS with atomic stock, partial refunds and cash reconciliation"
+requires-python = ">=3.11"
+readme = "README.md"
+license = {text = "MIT"}
+dependencies = ["Flask>=3.1.2,<4"]
+[project.scripts]
+shift-ledger-pos = "shift_ledger_pos.__main__:main"
+[tool.setuptools.package-data]
+shift_ledger_pos = ["templates/*.html", "static/*.css", "static/*.js"]
+
+[tool.setuptools.packages.find]
+include = ["shift_ledger_pos*"]

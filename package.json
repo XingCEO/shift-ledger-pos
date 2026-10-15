@@ -1,0 +1,1 @@
+{"name":"shift-ledger-pos-browser-tests","private":true,"scripts":{"test:e2e":"playwright test"},"devDependencies":{"@playwright/test":"^1.56.0"}}

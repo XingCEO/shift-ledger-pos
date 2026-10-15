@@ -1,0 +1,16 @@
+.venv/
+.local/
+.testdata/
+.serena/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+node_modules/
+test-results/
+playwright-report/
+*.sqlite3*
+session.key
+.env
+.DS_Store
