@@ -1,9 +1,10 @@
 """SQLite storage. Every business mutation acquires a write transaction first."""
+
 from contextlib import contextmanager
 from pathlib import Path
 import sqlite3
 
-SCHEMA = '''
+SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
  id INTEGER PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL,
  role TEXT NOT NULL CHECK(role IN ('admin','cashier'))
@@ -48,14 +49,14 @@ CREATE TABLE IF NOT EXISTS stock_movements (
  reason TEXT NOT NULL, reference TEXT NOT NULL,
  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
-'''
+"""
 
 
 def connect(path):
     db = sqlite3.connect(path, timeout=10, isolation_level=None)
     db.row_factory = sqlite3.Row
-    db.execute('PRAGMA foreign_keys=ON')
-    db.execute('PRAGMA busy_timeout=10000')
+    db.execute("PRAGMA foreign_keys=ON")
+    db.execute("PRAGMA busy_timeout=10000")
     return db
 
 
@@ -63,7 +64,7 @@ def initialize(path):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     db = connect(path)
     try:
-        db.execute('PRAGMA journal_mode=WAL')
+        db.execute("PRAGMA journal_mode=WAL")
         db.executescript(SCHEMA)
     finally:
         db.close()
@@ -73,12 +74,12 @@ def initialize(path):
 def transaction(path):
     db = connect(path)
     try:
-        db.execute('BEGIN IMMEDIATE')
+        db.execute("BEGIN IMMEDIATE")
         yield db
-        db.execute('COMMIT')
+        db.execute("COMMIT")
     except BaseException:
         if db.in_transaction:
-            db.execute('ROLLBACK')
+            db.execute("ROLLBACK")
         raise
     finally:
         db.close()

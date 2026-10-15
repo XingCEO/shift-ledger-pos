@@ -1,1 +1,12 @@
-{"name":"shift-ledger-pos-browser-tests","private":true,"scripts":{"test:e2e":"playwright test"},"devDependencies":{"@playwright/test":"^1.56.0"}}
+{
+  "name": "shift-ledger-pos-browser-tests",
+  "private": true,
+  "scripts": {
+    "test:e2e": "playwright test",
+    "format": "prettier --write \"shift_ledger_pos/static/*.{js,css}\" \"tests/browser/*.js\" playwright.config.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "prettier": "^3.9.10"
+  }
+}
