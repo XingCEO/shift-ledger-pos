@@ -154,13 +154,14 @@ function renderCart() {
   $("#subtotal").textContent = money(totals.subtotal);
   $("#tax").textContent = money(totals.tax);
   $("#total").textContent = money(totals.total);
-  $("#checkout").disabled = busy || !cart.size || !state.shift;
+  $("#checkout").disabled =
+    busy || !cart.size || (!state.shift && !pendingSale);
   $("#checkout").innerHTML = busy
     ? "Saving sale…"
-    : !state.shift
-      ? "Open a shift to sell"
-      : pendingSale
-        ? "Retry sale safely <span>→</span>"
+    : pendingSale
+      ? "Retry sale safely <span>→</span>"
+      : !state.shift
+        ? "Open a shift to sell"
         : "Complete sale <span>→</span>";
 }
 function render() {
@@ -276,7 +277,7 @@ function closeShiftDialog() {
   );
 }
 async function checkout() {
-  if (busy || !state.shift || !cart.size) return;
+  if (busy || (!state.shift && !pendingSale) || !cart.size) return;
   try {
     if (!pendingSale) {
       const payment = $('input[name="payment"]:checked').value,
@@ -314,7 +315,8 @@ async function checkout() {
       `<div class="success-icon">✓</div><h2>Another good moment.</h2><p>Receipt #${String(sale.id).padStart(6, "0")} · ${sale.payment === "cash" ? "Cash" : "External card payment recorded"}</p><p class="success-amount">${money(sale.total_cents)}</p><p>Change to return: <strong>${money(sale.change_cents)}</strong></p><a class="primary" href="/receipts/${sale.id}" target="_blank" rel="noopener">View & print receipt ↗</a>`,
     );
   } catch (error) {
-    const retry = !error.status || error.status >= 500;
+    const retry =
+      !error.status || error.status >= 500 || [401, 403].includes(error.status);
     if (!retry) {
       pendingSale = null;
       sessionStorage.removeItem("shift-ledger.pending");
@@ -368,6 +370,23 @@ function refundDialog(id) {
     },
   );
 }
+function restorePendingSale() {
+  const saved = JSON.parse(
+    sessionStorage.getItem("shift-ledger.pending") || "null",
+  );
+  if (saved && saved.user === account.id) {
+    pendingSale = saved.payload;
+    cart = new Map(pendingSale.items.map((i) => [i.product_id, i.quantity]));
+    notice(
+      "An unfinished sale request was restored. Retry it to confirm its outcome.",
+    );
+  } else {
+    pendingSale = null;
+    cart.clear();
+  }
+  renderCart();
+}
+
 $("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const f = new FormData(event.currentTarget);
@@ -381,6 +400,7 @@ $("#login-form").addEventListener("submit", async (event) => {
     $("#login-form").reset();
     showWorkspace();
     await refresh();
+    restorePendingSale();
   } catch (error) {
     $("#login-error").textContent = error.message;
   } finally {
@@ -519,19 +539,7 @@ $("#clock").textContent = new Date().toLocaleDateString([], {
     if (account) {
       showWorkspace();
       await refresh();
-      const saved = JSON.parse(
-        sessionStorage.getItem("shift-ledger.pending") || "null",
-      );
-      if (saved && saved.user === account.id) {
-        pendingSale = saved.payload;
-        cart = new Map(
-          pendingSale.items.map((i) => [i.product_id, i.quantity]),
-        );
-        notice(
-          "An unfinished sale request was restored. Retry it to confirm its outcome.",
-        );
-        renderCart();
-      }
+      restorePendingSale();
     }
   } catch (error) {
     $("#login-error").textContent = error.message;

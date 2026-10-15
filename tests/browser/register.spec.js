@@ -1,6 +1,7 @@
 const { test, expect } = require("@playwright/test");
 
 async function closeExistingShift(page) {
+  await expect(page.locator("#workspace")).toBeVisible();
   const session = await (await page.request.get("/api/session")).json();
   const state = await (await page.request.get("/api/state")).json();
   if (state.shift) {
@@ -108,4 +109,66 @@ test("mobile layout fits and failed tender can be corrected", async ({
   expect(overflow).toBe(false);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: "docs/mobile.png", fullPage: true });
+});
+
+test("lost response survives a closed shift and a new login without a second sale", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/");
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("browser-test-password");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(
+    page.getByRole("heading", { name: "The register", exact: true }),
+  ).toBeVisible();
+  await closeExistingShift(page);
+  await page.getByRole("button", { name: "Open your shift" }).click();
+  await page.getByRole("button", { name: "Open shift", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Register", exact: false })
+    .first()
+    .click();
+  const before = await (await page.request.get("/api/state")).json();
+  await page.getByRole("button", { name: /Add House espresso,/ }).click();
+  await page.route(
+    "**/api/sales",
+    async (route) => {
+      const committed = await route.fetch();
+      expect(committed.status()).toBe(201);
+      await route.abort("failed");
+    },
+    { times: 1 },
+  );
+  await page.getByRole("button", { name: "Complete sale" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "preserved for a safe retry",
+  );
+  await closeExistingShift(page);
+  await expect(page.getByRole("status")).toContainText(
+    "unfinished sale request was restored",
+  );
+  await context.clearCookies();
+  await page.reload();
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("browser-test-password");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  const retry = page.getByRole("button", { name: "Retry sale safely" });
+  await expect(retry).toBeEnabled();
+  await retry.click();
+  await expect(
+    page.getByRole("heading", { name: "Another good moment." }),
+  ).toBeVisible();
+  const after = await (await page.request.get("/api/state")).json();
+  expect(after.sales.length).toBe(before.sales.length + 1);
+  const pid = before.products.find((p) => p.sku === "COF-01").id;
+  expect(after.products.find((p) => p.id === pid).stock).toBe(
+    before.products.find((p) => p.id === pid).stock - 1,
+  );
+  expect(after.shift).toBeNull();
+  expect(
+    await page.evaluate(() => sessionStorage.getItem("shift-ledger.pending")),
+  ).toBeNull();
 });

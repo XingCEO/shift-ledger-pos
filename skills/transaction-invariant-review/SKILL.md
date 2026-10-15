@@ -17,6 +17,7 @@ Work inside the Shift Ledger checkout. Read `docs/API.md` and complete relevant 
 
 - Two buyers race for the last unit: exactly one new sale succeeds.
 - Two identical requests race: one receipt and one stock deduction.
+- The server commits but the response is lost; close the shift and expire the login, then recover the original receipt without a second sale.
 - Same key, changed body: reject without mutation.
 - Failure on a later cart line: no earlier stock or receipt writes survive.
 - Product price changes after sale: the refund still uses the original receipt.

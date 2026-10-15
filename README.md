@@ -75,7 +75,7 @@ flowchart LR
 - **Safe retries:** sale and refund request keys are unique. Repeating the same body returns the original result; reusing a key with different content is rejected.
 - **Original receipt values:** catalog edits never rewrite old receipts. Partial refund amounts are allocated cumulatively so a full return equals the original line total exactly.
 - **Cash accountability:** expected cash is opening float + cash sales − cash refunds processed during that shift. External card payments are excluded.
-- **Recoverable browser retry:** a pending sale request is kept in that tab’s session storage and restored after reload. An unresolved request must be retried before changing the order. Closing the tab can discard this recovery record; review receipts before entering an uncertain sale again.
+- **Recoverable browser retry:** a pending sale request is kept in that tab’s session storage and restored after reload or signing back into the same account. A saved request can be retried even after its original shift closes. An unresolved request must be retried before changing the order. Closing the tab can discard this recovery record; review receipts before entering an uncertain sale again.
 
 ![Cash reconciliation after a sale and partial return](docs/reconciliation.png)
 
@@ -90,7 +90,7 @@ npx playwright install chromium
 PYTHON=python npm run test:e2e
 ```
 
-The Python suite covers transaction rollback, concurrent stock contention, duplicate requests, tax allocation, partial refunds, prior-shift returns, catalog edits, manager authorization, CSRF and CSV export. Browser tests exercise the actual UI from login through sale, return and close, plus mobile overflow and recovery from insufficient tender. They create a disposable database and synthetic credentials.
+The Python suite covers transaction rollback, concurrent stock contention, duplicate requests, tax allocation, partial refunds, prior-shift returns, catalog edits, manager authorization, CSRF and CSV export. Browser tests exercise the actual UI from login through sale, return and close, plus mobile overflow, recovery from insufficient tender, and a lost response followed by shift closure and a new login. They create a disposable database and synthetic credentials.
 
 Screenshots in this README are produced by the committed browser tests, not design mockups. CI runs Python 3.11/3.13 and Chromium.
 
@@ -109,7 +109,7 @@ The business service can be called directly from Python, making it useful for ag
 
 ## Deliberate boundaries
 
-This is a working **experimental v0.1 for one location and one register**. It does not implement fiscal certification, Taiwan e-invoices, payment processing, card data handling, discounts, split tenders, cash payouts, multi-location stock, hardware printer protocols or accounting integrations. A card sale records a payment already collected elsewhere; the app never charges a card.
+This is a working **experimental v0.1.1 for one location and one register**. It does not implement fiscal certification, Taiwan e-invoices, payment processing, card data handling, discounts, split tenders, cash payouts, multi-location stock, hardware printer protocols or accounting integrations. A card sale records a payment already collected elsewhere; the app never charges a card.
 
 The built-in server is for local evaluation. Use a production WSGI server behind HTTPS for a network deployment, keep it private, back up SQLite correctly and review jurisdiction-specific receipt/tax obligations before real trading. Login throttling is process-local; run one application worker or add a shared limiter. This project has automated tests, not a claim of production certification.
 
